@@ -67,6 +67,8 @@ class Mesh {
   String? name;
 }
 
+// https://people.cs.clemson.edu/~dhouse/courses/405/docs/brief-obj-file-format.html
+
 Future<List<Mesh>> loadStlAscii(String fileName, bool normalized,
     {bool isAsset = true}) async {
   Map<String, Material>? materials;
@@ -103,6 +105,9 @@ Future<List<Mesh>> loadStlAscii(String fileName, bool normalized,
   double? vy;
   double? vz;
 
+  double? fx;
+  double? fy;
+  double? fz;
 
   for (var line in lines) {
     List<String> parts = line.trim().split(RegExp(r"\s+"));
@@ -110,90 +115,52 @@ Future<List<Mesh>> loadStlAscii(String fileName, bool normalized,
     switch (parts[0]) {
       case 'facet': //facet normal 0.000000e+00 1.000000e+00 -0.000000e+00
         openFacet = true;
+        // fx = double.parse(parts[2]);
+        // fy = double.parse(parts[3]);
+        // fz = double.parse(parts[4]);
+
+        Polygon vi = Polygon(
+            vertexIndices.length + 1,
+            vertexIndices.length + 2,
+            vertexIndices.length + 3,
+        );
+        vertexIndices.add(vi);
+
+        // Polygon vi = Polygon(
+        //   double.parse(parts[2]).toInt(),
+        //   double.parse(parts[3]).toInt(),
+        //   double.parse(parts[4]).toInt(),
+        // );
+        // // Polygon vi = Polygon(_getVertexIndex(p1[0]), _getVertexIndex(p2[0]),
+        // //     _getVertexIndex(p3[0]));
+        // vertexIndices.add(vi);
         break;
       case 'outer': //outer loop
         openLoop = true;
         break;
       case 'vertex': //vertex   2.000000e+01 2.000000e+01 0.000000e+00
+        final v = Vector3(
+            double.parse(parts[1]),
+            double.parse(parts[2]),
+            double.parse(parts[3]),
+        );
+        vertices.add(v);
         break;
       case 'endloop': //endloop
         openLoop = false;
         break;
       case 'endfacet': // endfacet
         openFacet = false;
+        // Polygon vi = Polygon(
+        //   (fx! + vx!).toInt(),
+        //   (fy! + vy!).toInt(),
+        //  ( fz! + vz!).toInt(),
+        // );
+        // // Polygon vi = Polygon(_getVertexIndex(p1[0]), _getVertexIndex(p2[0]),
+        // //     _getVertexIndex(p3[0]));
+        // vertexIndices.add(vi);
         break;
 
-      case 'mtllib':
-        // load material library file. eg: mtllib master.mtl
-        final mtlFileName = path.join(basePath, parts[1]);
-        materials = await loadMtl(mtlFileName, isAsset: isAsset);
-        break;
-      case 'usemtl':
-        // material name from material library. eg: usemtl red
-        if (parts.length >= 2) materialName = parts[1];
-        // create a new mesh element
-        final String elementName =
-            objectlName ?? groupName ?? materialName ?? '';
-        elementNames.add(elementName);
-        elementMaterials.add(materialName ?? '');
-        elementOffsets.add(vertexIndices.length);
-        break;
-      case 'g':
-        // the name for the group. eg: g front cube
-        if (parts.length >= 2) groupName = parts[1];
-        break;
-      case 'o':
-        // the user-defined object name. eg: o cube
-        if (parts.length >= 2) objectlName = parts[1];
-        break;
-      case 'v':
-        // a geometric vertex and its x y z coordinates. eg: v 0.000000 2.000000 0.000000
-        if (parts.length >= 4) {
-          final v = Vector3(double.parse(parts[1]), double.parse(parts[2]),
-              double.parse(parts[3]));
-          vertices.add(v);
-        }
-        break;
-      case 'vt':
-        // eg: vt 0.000000 0.000000
-        if (parts.length >= 3) {
-          double x = double.parse(parts[1]);
-          double y = double.parse(parts[2]);
-          if (x < 0 || x > 1.0) x %= 1.0;
-          if (y < 0 || y > 1.0) y %= 1.0;
-          final vt = Offset(x, y);
-          texcoords.add(vt);
-        }
-        break;
-      case 'f':
-        if (parts.length >= 4) {
-          // eg: f 1/1 2/2 3/3
-          final List<String> p1 = parts[1].split('/');
-          final List<String> p2 = parts[2].split('/');
-          final List<String> p3 = parts[3].split('/');
-          Polygon vi = Polygon(_getVertexIndex(p1[0]), _getVertexIndex(p2[0]),
-              _getVertexIndex(p3[0]));
-          vertexIndices.add(vi);
-          Polygon ti = Polygon(0, 0, 0);
-          if ((p1.length >= 2 && p1[1] != '') &&
-              (p2.length >= 2 && p2[1] != '') &&
-              (p3.length >= 2 && p3[1] != '')) {
-            ti = Polygon(_getVertexIndex(p1[1]), _getVertexIndex(p2[1]),
-                _getVertexIndex(p3[1]));
-            textureIndices.add(ti);
-          }
-          // polygon to triangle. eg: f 1/1 2/2 3/3 4/4 ==> f 1/1 2/2 3/3 + f 1/1 3/3 4/4
-          for (int i = 4; i < parts.length; i++) {
-            final List<String> p3 = parts[i].split('/');
-            vi = Polygon(vi.vertex0, vi.vertex2, _getVertexIndex(p3[0]));
-            vertexIndices.add(vi);
-            if (p3.length >= 2 && p3[1] != '') {
-              ti = Polygon(ti.vertex0, ti.vertex2, _getVertexIndex(p3[1]));
-              textureIndices.add(ti);
-            }
-          }
-        }
-        break;
       default:
     }
   }

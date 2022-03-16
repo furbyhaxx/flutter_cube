@@ -33,17 +33,34 @@ class Object {
 
     // load mesh from obj file
     if (fileName != null) {
-      loadObj(fileName, normalized, isAsset: isAsset).then((List<Mesh> meshes) {
-        if (meshes.length == 1) {
-          this.mesh = meshes[0];
-        } else if (meshes.length > 1) {
-          // multiple objects
-          for (Mesh mesh in meshes) {
-            add(Object(name: mesh.name, mesh: mesh, backfaceCulling: backfaceCulling, lighting: lighting));
-          }
-        }
-        this.scene?.objectCreated(this);
-      });
+      switch(fileName.split(".").last.toLowerCase()) {
+        case "stl":
+          loadStlAscii(fileName, normalized, isAsset: isAsset).then((List<Mesh> meshes) {
+            if (meshes.length == 1) {
+              this.mesh = meshes[0];
+            } else if (meshes.length > 1) {
+              // multiple objects
+              for (Mesh mesh in meshes) {
+                add(Object(name: mesh.name, mesh: mesh, backfaceCulling: backfaceCulling, lighting: lighting));
+              }
+            }
+            this.scene?.objectCreated(this);
+          });
+          break;
+        case "obj":
+          loadObj(fileName, normalized, isAsset: isAsset).then((List<Mesh> meshes) {
+            if (meshes.length == 1) {
+              this.mesh = meshes[0];
+            } else if (meshes.length > 1) {
+              // multiple objects
+              for (Mesh mesh in meshes) {
+                add(Object(name: mesh.name, mesh: mesh, backfaceCulling: backfaceCulling, lighting: lighting));
+              }
+            }
+            this.scene?.objectCreated(this);
+          });
+          break;
+      }
     } else {
       this.scene?.objectCreated(this);
     }
