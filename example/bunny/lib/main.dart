@@ -32,6 +32,12 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
   double _specular = 0.5;
   double _shininess = 0.0;
 
+  void generateGroundPlane(Object parent, String name, bool backfaceCulling, String texturePath) async {
+    final Mesh mesh = await generateSphereMesh(radius: radius, texturePath: texturePath);
+    parent.add(Object(name: name, mesh: mesh, backfaceCulling: backfaceCulling));
+    _scene.updateTexture();
+  }
+
   void _onSceneCreated(Scene scene) {
     _scene = scene;
     scene.camera.position.z = 10;
